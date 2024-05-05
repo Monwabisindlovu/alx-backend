@@ -14,6 +14,7 @@ class Server:
     DATA_FILE = "Popular_Baby_Names.csv"
 
     def __init__(self):
+        """Init a Server instance """
         self.__dataset = None
         self.__indexed_dataset = None
 
@@ -40,33 +41,26 @@ class Server:
         return self.__indexed_dataset
 
     def get_hyper_index(self, index: int = None, page_size: int = 10) -> Dict:
-        """Return a dictionary containing the following key-value pairs:
-            - index: the current start index of the return page. That is the
-                index of the first item in the current page. For example if
-                requesting page 3 with page_size 20, and no data was removed
-                from the dataset, the current index should be 60.
-            - next_index: the next index to query with. That should be the
-                index of the first item after the last item on the current page
-            - page_size: the current page size
-            - data: the actual page of the dataset
-        """
-        assert isinstance(index, int) and index >= 0
-        assert isinstance(page_size, int) and page_size > 0
-
-        indexed_dataset = self.indexed_dataset()
-        assert index < len(indexed_dataset)
-
-        data = []
-        next_index = index + page_size
-        for i in range(index, next_index):
-            if i not in indexed_dataset:
-                next_index += 1
+        """Retrieves info about a page from a given index
+        with a specified size"""
+        data = self.indexed_dataset()
+        assert index is not None and index >= 0 and index <= max(data.keys())
+        page_data = []
+        data_count = 0
+        next_index = None
+        start = index if index else 0
+        for i, item in data.items():
+            if i >= start and data_count < page_size:
+                page_data.append(item)
+                data_count += 1
                 continue
-            data.append(indexed_dataset[i])
-
-        return {
+            if data_count == page_size:
+                next_index = i
+                break
+        page_info = {
             'index': index,
             'next_index': next_index,
-            'page_size': page_size,
-            'data': data
+            'page_size': len(page_data),
+            'data': page_data,
         }
+        return page_info
