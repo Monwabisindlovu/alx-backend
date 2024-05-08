@@ -1,50 +1,55 @@
 #!/usr/bin/env python3
-"""
-Defines a MRUCache class that inherits from BaseCaching.
-"""
-
-BaseCaching = __import__('base_caching').BaseCaching
+""" 100-lfu_cache.py """
+from base_caching import BaseCaching
 
 
-class MRUCache(BaseCaching):
-    """
-    Implements a caching system using MRU algorithm.
-    """
+class LFUCache(BaseCaching):
+    """ LFUCache """
 
     def __init__(self):
-        """
-        Initializes the MRU cache.
-        """
         super().__init__()
+        self.usage = []
+        self.frequency = {}
 
     def put(self, key, item):
-        """
-        Adds an item to the cache.
-        """
+        """ put function """
         if key is None or item is None:
-            return
+            pass
+        else:
+            length = len(self.cache_data)
+            if length >= BaseCaching.MAX_ITEMS and key not in self.cache_data:
+                lfu = min(self.frequency.values())
+                lfu_keys = []
+                for k, v in self.frequency.items():
+                    if v == lfu:
+                        lfu_keys.append(k)
+                if len(lfu_keys) > 1:
+                    lru_lfu = {}
+                    for k in lfu_keys:
+                        lru_lfu[k] = self.usage.index(k)
+                    discard = min(lru_lfu.values())
+                    discard = self.usage[discard]
+                else:
+                    discard = lfu_keys[0]
 
-        # If the key already exists, move it to the end (most recently used)
-        if key in self.cache_data:
-            del self.cache_data[key]
-
-        # If cache is full, remove the most recently used item
-        elif len(self.cache_data) >= BaseCaching.MAX_ITEMS:
-            mru_key = max(self.cache_data, key=self.cache_data.get)
-            del self.cache_data[mru_key]
-            print("DISCARD:", mru_key)
-
-        self.cache_data[key] = item
+                print("DISCARD: {}".format(discard))
+                del self.cache_data[discard]
+                del self.usage[self.usage.index(discard)]
+                del self.frequency[discard]
+            if key in self.frequency:
+                self.frequency[key] += 1
+            else:
+                self.frequency[key] = 1
+            if key in self.usage:
+                del self.usage[self.usage.index(key)]
+            self.usage.append(key)
+            self.cache_data[key] = item
 
     def get(self, key):
-        """
-        Retrieves an item from the cache.
-        """
-        if key is None or key not in self.cache_data:
-            return None
-
-        # Move the key to the end (most recently used)
-        value = self.cache_data.pop(key)
-        self.cache_data[key] = value
-
-        return value
+        """ get function """
+        if key is not None and key in self.cache_data.keys():
+            del self.usage[self.usage.index(key)]
+            self.usage.append(key)
+            self.frequency[key] += 1
+            return self.cache_data[key]
+        return None
